@@ -12,9 +12,9 @@ data Node
     | Negate Node
     | Point Float
 
-simplifyNodeToPoint :: Node -> Float
-simplifyNodeToPoint (Point p) = p
-simplifyNodeToPoint (Add (Point x) (Point y)) = x + y
-simplifyNodeToPoint (Add r s) = simplifyNodeToPoint (Add (Point (simplifyNodeToPoint r)) (Point (simplifyNodeToPoint s)))
-simplifyNodeToPoint (Negate (Point x)) = -x
-simplifyNodeToPoint (Negate r) = simplifyNodeToPoint (Negate (Point (simplifyNodeToPoint r)))
+simplifyNodeToPointValue :: Node -> Float
+simplifyNodeToPointValue (Point p) = p
+simplifyNodeToPointValue (Add (Point x) (Point y)) = x + y
+simplifyNodeToPointValue (Add r s) = simplifyNodeToPointValue (Add (Point (simplifyNodeToPointValue r)) (Point (simplifyNodeToPointValue s)))
+simplifyNodeToPointValue (Negate (Point x)) = -x
+simplifyNodeToPointValue (Negate r) = simplifyNodeToPointValue (Negate (Point (simplifyNodeToPointValue r)))
