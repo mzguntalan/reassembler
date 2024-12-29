@@ -3,9 +3,9 @@ module ComputationGraph where
 import Optimizer qualified
 
 data Node
-    = Add Node Node
-    | Negate Node
-    | Point Float
+  = Add Node Node
+  | Negate Node
+  | Point Float
 
 simplifyNodeToPointValue :: Node -> Float
 simplifyNodeToPointValue (Point p) = p
@@ -31,11 +31,8 @@ structEqNode (Point r) (Point s) = True
 structEqNode (Add a b) (Add c d) = structEqNode a c && structEqNode b d
 
 instance Optimizer.ComputationNode Node where
-    simplifyToValue = simplifyNodeToPointValue
-    hash = hashNode
-    structEq = structEqNode
-    hashEq = hashEqNode
-    isPoint = isNodePoint
-
-possiblySameThread :: (Optimizer.ComputationNode a) => a -> a -> Bool
-possiblySameThread r s = hashEq r s && structEq r s
+  simplifyToValue = simplifyNodeToPointValue
+  hash = hashNode
+  structEq = structEqNode
+  hashEq = hashEqNode
+  isPoint = isNodePoint
