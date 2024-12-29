@@ -1,8 +1,8 @@
 module Optimizer where
 
 class ComputationNode a where
-    simplifyToValue :: a -> Float
+    simplify :: a -> a
     hash :: a -> String
     structEq :: a -> a -> Bool
     hashEq :: a -> a -> Bool
-    isPoint :: a -> Bool
+    isSimplified :: a -> Bool
