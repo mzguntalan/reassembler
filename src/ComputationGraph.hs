@@ -7,17 +7,14 @@ class ComputationNode a where
     hashEq :: a -> a -> Bool
     isPoint :: a -> Bool
 
-data OperationType = Add | Negate deriving (Enum, Show)
-
 data Node
-    = Operation OperationType [Node]
+    = Add Node Node
+    | Negate Node
     | Point Float
 
 simplifyNodeToPoint :: Node -> Float
 simplifyNodeToPoint (Point p) = p
-simplifyNodeToPoint (Operation Add [Point x, Point y]) = x + y
-simplifyNodeToPoint (Operation Negate [Point x]) = -x
-simplifyNodeToPoint (Operation t parameters) = simplifyNodeToPoint (Operation t simplifiedParameterNodes)
-  where
-    simplifiedParameterNodes = map simplifyNodeToPointNode parameters
-    simplifyNodeToPointNode x = Point (simplifyNodeToPoint x)
+simplifyNodeToPoint (Add (Point x) (Point y)) = x + y
+simplifyNodeToPoint (Add r s) = simplifyNodeToPoint (Add (Point (simplifyNodeToPoint r)) (Point (simplifyNodeToPoint s)))
+simplifyNodeToPoint (Negate (Point x)) = -x
+simplifyNodeToPoint (Negate r) = simplifyNodeToPoint (Negate (Point (simplifyNodeToPoint r)))
