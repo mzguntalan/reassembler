@@ -1,11 +1,6 @@
 module ComputationGraph where
 
-class ComputationNode a where
-    simplifyToValue :: a -> Float
-    hash :: a -> String
-    structEq :: a -> a -> Bool
-    hashEq :: a -> a -> Bool
-    isPoint :: a -> Bool
+import Optimizer qualified
 
 data Node
     = Add Node Node
@@ -35,12 +30,12 @@ structEqNode :: Node -> Node -> Bool
 structEqNode (Point r) (Point s) = True
 structEqNode (Add a b) (Add c d) = structEqNode a c && structEqNode b d
 
-instance ComputationNode Node where
+instance Optimizer.ComputationNode Node where
     simplifyToValue = simplifyNodeToPointValue
     hash = hashNode
     structEq = structEqNode
     hashEq = hashEqNode
     isPoint = isNodePoint
 
-possiblySameThread :: (ComputationNode a) => a -> a -> Bool
+possiblySameThread :: (Optimizer.ComputationNode a) => a -> a -> Bool
 possiblySameThread r s = hashEq r s && structEq r s
