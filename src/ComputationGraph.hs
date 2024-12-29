@@ -2,35 +2,37 @@ module ComputationGraph where
 
 import Optimizer qualified
 
-data Node
-  = Add Node Node
-  | Negate Node
+data OperationNode = Add PointNode PointNode | Negate PointNode
+
+data PointNode -- reduces to a point when simplified
+  = Operation OperationNode
   | Point Float
 
-simplifyNodeToPoint :: Node -> Node
+simplifyNodeToPoint :: PointNode -> PointNode
 simplifyNodeToPoint (Point p) = Point p
-simplifyNodeToPoint (Add (Point x) (Point y)) = Point (x + y)
-simplifyNodeToPoint (Add r s) = simplifyNodeToPoint (Add (simplifyNodeToPoint r) (simplifyNodeToPoint s))
-simplifyNodeToPoint (Negate (Point x)) = Point (-x)
-simplifyNodeToPoint (Negate r) = simplifyNodeToPoint (Negate (simplifyNodeToPoint r))
+simplifyNodeToPoint (Operation (Add (Point x) (Point y))) = Point (x + y)
+simplifyNodeToPoint (Operation (Add r s)) =
+  simplifyNodeToPoint (Operation (Add (simplifyNodeToPoint r) (simplifyNodeToPoint s)))
+simplifyNodeToPoint (Operation (Negate (Point x))) = Point (-x)
+simplifyNodeToPoint (Operation (Negate r)) = simplifyNodeToPoint (Operation (Negate (simplifyNodeToPoint r)))
 
-hash :: Node -> String
+hash :: PointNode -> String
 hash (Point p) = "point"
-hash (Add a b) = "add" ++ hash a ++ hash b
-hash (Negate a) = "negate" ++ hash a
+hash (Operation (Add a b)) = "add" ++ hash a ++ hash b
+hash (Operation (Negate a)) = "negate" ++ hash a
 
-hashEq :: Node -> Node -> Bool
+hashEq :: PointNode -> PointNode -> Bool
 hashEq a b = hash a == hash b
 
-isPoint :: Node -> Bool
+isPoint :: PointNode -> Bool
 isPoint (Point p) = True
 isPoint _ = False
 
-structEq :: Node -> Node -> Bool
+structEq :: PointNode -> PointNode -> Bool
 structEq (Point r) (Point s) = True
-structEq (Add a b) (Add c d) = structEq a c && structEq b d
+structEq (Operation (Add a b)) (Operation (Add c d)) = structEq a c && structEq b d
 
-instance Optimizer.ComputationNode Node where
+instance Optimizer.ComputationNode PointNode where
   simplify = simplifyNodeToPoint
   hash = hash
   structEq = structEq
