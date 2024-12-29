@@ -7,32 +7,32 @@ data Node
   | Negate Node
   | Point Float
 
-simplifyNodeToPointValue :: Node -> Float
-simplifyNodeToPointValue (Point p) = p
-simplifyNodeToPointValue (Add (Point x) (Point y)) = x + y
-simplifyNodeToPointValue (Add r s) = simplifyNodeToPointValue (Add (Point (simplifyNodeToPointValue r)) (Point (simplifyNodeToPointValue s)))
-simplifyNodeToPointValue (Negate (Point x)) = -x
-simplifyNodeToPointValue (Negate r) = simplifyNodeToPointValue (Negate (Point (simplifyNodeToPointValue r)))
+simplifyNodeToPoint :: Node -> Node
+simplifyNodeToPoint (Point p) = Point p
+simplifyNodeToPoint (Add (Point x) (Point y)) = Point (x + y)
+simplifyNodeToPoint (Add r s) = simplifyNodeToPoint (Add (simplifyNodeToPoint r) (simplifyNodeToPoint s))
+simplifyNodeToPoint (Negate (Point x)) = Point (-x)
+simplifyNodeToPoint (Negate r) = simplifyNodeToPoint (Negate (simplifyNodeToPoint r))
 
-hashNode :: Node -> String
-hashNode (Point p) = "point"
-hashNode (Add a b) = "add" ++ hashNode a ++ hashNode b
-hashNode (Negate a) = "negate" ++ hashNode a
+hash :: Node -> String
+hash (Point p) = "point"
+hash (Add a b) = "add" ++ hash a ++ hash b
+hash (Negate a) = "negate" ++ hash a
 
-hashEqNode :: Node -> Node -> Bool
-hashEqNode a b = hashNode a == hashNode b
+hashEq :: Node -> Node -> Bool
+hashEq a b = hash a == hash b
 
-isNodePoint :: Node -> Bool
-isNodePoint (Point p) = True
-isNodePoint _ = False
+isPoint :: Node -> Bool
+isPoint (Point p) = True
+isPoint _ = False
 
-structEqNode :: Node -> Node -> Bool
-structEqNode (Point r) (Point s) = True
-structEqNode (Add a b) (Add c d) = structEqNode a c && structEqNode b d
+structEq :: Node -> Node -> Bool
+structEq (Point r) (Point s) = True
+structEq (Add a b) (Add c d) = structEq a c && structEq b d
 
 instance Optimizer.ComputationNode Node where
-  simplifyToValue = simplifyNodeToPointValue
-  hash = hashNode
-  structEq = structEqNode
-  hashEq = hashEqNode
-  isPoint = isNodePoint
+  simplify = simplifyNodeToPoint
+  hash = hash
+  structEq = structEq
+  hashEq = hashEq
+  isSimplified = isPoint
