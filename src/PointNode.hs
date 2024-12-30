@@ -18,8 +18,6 @@ class Operator a where
 
 data BinaryOperator = Add | Subtract deriving (Enum, Show, Eq)
 
-data UnaryOperator = Negate deriving (Enum, Show, Eq)
-
 instance Operator BinaryOperator where
     isParametersValid Add [a, b] = True
     isParametersValid Add _ = False
@@ -30,6 +28,8 @@ instance Operator BinaryOperator where
     perform Subtract [Point a, Point b] = Point (a - b)
     perform Subtract [a, b] = perform Subtract [simplify a, simplify b]
     hashOperator = show
+
+data UnaryOperator = Negate deriving (Enum, Show, Eq)
 
 instance Operator UnaryOperator where
     isParametersValid Negate [a] = True
@@ -43,6 +43,8 @@ data PointNode where
     Point :: Float -> PointNode
     Collection :: [PointNode] -> PointNode
     Dummy :: PointNode
+
+i
 
 simplifyPointNode :: PointNode -> PointNode
 simplifyPointNode (Point a) = Point a
