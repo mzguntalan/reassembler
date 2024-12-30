@@ -35,12 +35,18 @@ instance Operator UnaryOperator where
     perform Negate [a] = perform Negate [simplify a]
     hashOperator = show
 
-data CollectOperator = Collect deriving (Enum, Show, Eq)
+data CollectOperator = Collect | Zip deriving (Enum, Show, Eq) -- produces a Collection PointNode when simplified
 
 instance Operator CollectOperator where
     isParametersValid Collect [] = False
     isParametersValid Collect _ = True
-    perform Collect = Collection
+    isParametersValid Zip [a, b] = True
+    isParametersValid Zip _ = False
+    perform Collect cs = Collection cs
+    perform Zip [Point _, _] = error "Zip expects [Collection as, Collection bs] got [Point _, _]"
+    perform Zip [_, Point _] = error "Zip expects [Collection as, Collection bs] got [_, Point _]"
+    perform Zip [Collection as, Collection bs] = Collection (map (\(x, y) -> Collection [x, y]) (zip as bs))
+    perform Zip [pointnodeA, pointnodeB] = perform Zip [simplify pointnodeA, simplify pointnodeB]
     hashOperator = show
 
 applyOperator :: (Operator a) => a -> [PointNode] -> PointNode
