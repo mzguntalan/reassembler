@@ -2,9 +2,6 @@
 
 module PointNode where
 
-import Data.Binary (Binary)
-import Distribution.PackageDescription (hasExes)
-
 class Node a where
     simplify :: a -> a
     hash :: a -> String
@@ -38,18 +35,43 @@ instance Operator UnaryOperator where
     perform Negate [a] = perform Negate [simplify a]
     hashOperator = show
 
+data CollectOperator = Collect deriving (Enum, Show, Eq)
+
+instance Operator CollectOperator where
+    isParametersValid Collect [] = False
+    isParametersValid Collect _ = True
+    perform Collect = Collection
+    hashOperator = show
+
+applyOperator :: (Operator a) => a -> [PointNode] -> PointNode
+applyOperator = Operation
+
+data MapOperator = MapOp deriving (Enum, Show, Eq)
+
+instance Operator MapOperator where
+    isParametersValid MapOp [Operation op _, Collection []] = False
+    isParametersValid MapOp [Operation op _, Collection _] = True
+    isParametersValid MapOp _ = False
+    hashOperator = show
+    perform MapOp [Operation op _, Point _] = error "perform expects [Operation op _, Collection params] instead found [Operation op _, Point _] "
+    perform MapOp [Operation op _, Collection params] =
+        simplify (Collection nodes)
+      where
+        nodes = map (applyOperator op) spreadParams
+        spreadParams = map (\x -> [x]) params
+    perform MapOp [Operation op dummy, pointnode] = perform MapOp [Operation op dummy, simplify pointnode]
+
 data PointNode where
     Operation :: (Operator a) => a -> [PointNode] -> PointNode
     Point :: Float -> PointNode
     Collection :: [PointNode] -> PointNode
     Dummy :: PointNode
 
-i
-
 simplifyPointNode :: PointNode -> PointNode
 simplifyPointNode (Point a) = Point a
 simplifyPointNode (Collection as) = Collection (map simplifyPointNode as)
 simplifyPointNode (Operation op params) = perform op params
+simplifyPointNode Dummy = Dummy
 
 instance Node PointNode where
     simplify = simplifyPointNode
@@ -61,3 +83,9 @@ instance Node PointNode where
     structEq (Collection (a : as)) (Collection (b : bs)) = structEq a b && structEq (Collection as) (Collection bs)
     structEq (Operation op1 params1) (Operation op2 params2) = (hashOperator op1 == hashOperator op2) && all (uncurry structEq) (zip params1 params2)
     structEq a b = False
+
+instance Show PointNode where
+    show (Point a) = "(" ++ show a ++ ")"
+    show (Collection nodes) = "[" ++ concatMap show nodes ++ "]"
+    show (Operation op params) = "{\n" ++ "Op:" ++ hashOperator op ++ "; \n" ++ show (Collection params) ++ "\n}"
+    show Dummy = "Dummy"
