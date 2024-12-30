@@ -10,17 +10,12 @@ class Node a where
     hashEq :: a -> a -> Bool
 
 class Operator a where
-    isParametersValid :: a -> PointNode -> Bool
     perform :: a -> PointNode -> PointNode
     hashOperator :: a -> String
 
 data BinaryOperator = Add | Subtract deriving (Enum, Show, Eq)
 
 instance Operator BinaryOperator where
-    isParametersValid Add (Collection [_, _]) = True
-    isParametersValid Add _ = False
-    isParametersValid Subtract (Collection [_, _]) = True
-    isParametersValid Subtract _ = False
     perform Add (Collection [Point a, Point b]) = Point (a + b)
     perform Add (Collection [a, b]) = perform Add (Collection [simplify a, simplify b])
     perform Add pointnode = perform Add (simplify pointnode)
@@ -32,8 +27,6 @@ instance Operator BinaryOperator where
 data UnaryOperator = Negate deriving (Enum, Show, Eq)
 
 instance Operator UnaryOperator where
-    isParametersValid Negate (Collection [_]) = True
-    isParametersValid Negate _ = False
     perform Negate (Collection [Point a]) = Point (-a)
     perform Negate pointnode = perform Negate (simplify pointnode)
     hashOperator = show
@@ -41,10 +34,6 @@ instance Operator UnaryOperator where
 data CollectOperator = Collect | Zip deriving (Enum, Show, Eq) -- produces a Collection PointNode when simplified
 
 instance Operator CollectOperator where
-    isParametersValid Collect (Collection []) = False
-    isParametersValid Collect _ = True
-    isParametersValid Zip (Collection [_, _]) = True
-    isParametersValid Zip _ = False
     perform Collect cs = cs
     perform Zip (Collection [Point _, _]) = error "Zip expects [Collection as, Collection bs] got [Point _, _]"
     perform Zip (Collection [_, Point _]) = error "Zip expects [Collection as, Collection bs] got [_, Point _]"
@@ -59,9 +48,6 @@ applyOperator = Operation
 data MapOperator = MapOp deriving (Enum, Show, Eq)
 
 instance Operator MapOperator where
-    isParametersValid MapOp (Collection [Operation _ _, Collection []]) = False
-    isParametersValid MapOp (Collection [Operation _ _, Collection _]) = True
-    isParametersValid MapOp _ = False
     hashOperator = show
     perform MapOp (Collection [Operation _ _, Point _]) = error "perform expects [Operation _ _, Collection params] instead found [Operation op _, Point _] "
     perform MapOp (Collection [Operation op _, Collection params]) =
