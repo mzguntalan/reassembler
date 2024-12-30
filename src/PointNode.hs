@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# OPTIONS_GHC -Wall #-}
 
 module PointNode where
 
@@ -16,23 +17,25 @@ class Operator a where
 data BinaryOperator = Add | Subtract deriving (Enum, Show, Eq)
 
 instance Operator BinaryOperator where
-    isParametersValid Add (Collection [a, b]) = True
+    isParametersValid Add (Collection [_, _]) = True
     isParametersValid Add _ = False
-    isParametersValid Subtract (Collection [a, b]) = True
+    isParametersValid Subtract (Collection [_, _]) = True
     isParametersValid Subtract _ = False
     perform Add (Collection [Point a, Point b]) = Point (a + b)
     perform Add (Collection [a, b]) = perform Add (Collection [simplify a, simplify b])
+    perform Add pointnode = perform Add (simplify pointnode)
     perform Subtract (Collection [Point a, Point b]) = Point (a - b)
     perform Subtract (Collection [a, b]) = perform Subtract (Collection [simplify a, simplify b])
+    perform Subtract pointnode = perform Subtract (simplify pointnode)
     hashOperator = show
 
 data UnaryOperator = Negate deriving (Enum, Show, Eq)
 
 instance Operator UnaryOperator where
-    isParametersValid Negate (Collection [a]) = True
+    isParametersValid Negate (Collection [_]) = True
     isParametersValid Negate _ = False
     perform Negate (Collection [Point a]) = Point (-a)
-    perform Negate (Collection [a]) = perform Negate (Collection [simplify a])
+    perform Negate pointnode = perform Negate (simplify pointnode)
     hashOperator = show
 
 data CollectOperator = Collect | Zip deriving (Enum, Show, Eq) -- produces a Collection PointNode when simplified
@@ -40,13 +43,14 @@ data CollectOperator = Collect | Zip deriving (Enum, Show, Eq) -- produces a Col
 instance Operator CollectOperator where
     isParametersValid Collect (Collection []) = False
     isParametersValid Collect _ = True
-    isParametersValid Zip (Collection [a, b]) = True
+    isParametersValid Zip (Collection [_, _]) = True
     isParametersValid Zip _ = False
     perform Collect cs = cs
     perform Zip (Collection [Point _, _]) = error "Zip expects [Collection as, Collection bs] got [Point _, _]"
     perform Zip (Collection [_, Point _]) = error "Zip expects [Collection as, Collection bs] got [_, Point _]"
     perform Zip (Collection [Collection as, Collection bs]) = Collection (map (\(x, y) -> Collection [x, y]) (zip as bs))
     perform Zip (Collection [pointnodeA, pointnodeB]) = perform Zip (Collection [simplify pointnodeA, simplify pointnodeB])
+    perform Zip pointnode = perform Zip (simplify pointnode)
     hashOperator = show
 
 applyOperator :: (Operator a) => a -> PointNode -> PointNode
@@ -55,17 +59,18 @@ applyOperator = Operation
 data MapOperator = MapOp deriving (Enum, Show, Eq)
 
 instance Operator MapOperator where
-    isParametersValid MapOp (Collection [Operation op _, Collection []]) = False
-    isParametersValid MapOp (Collection [Operation op _, Collection _]) = True
+    isParametersValid MapOp (Collection [Operation _ _, Collection []]) = False
+    isParametersValid MapOp (Collection [Operation _ _, Collection _]) = True
     isParametersValid MapOp _ = False
     hashOperator = show
-    perform MapOp (Collection [Operation op _, Point _]) = error "perform expects [Operation op _, Collection params] instead found [Operation op _, Point _] "
+    perform MapOp (Collection [Operation _ _, Point _]) = error "perform expects [Operation _ _, Collection params] instead found [Operation op _, Point _] "
     perform MapOp (Collection [Operation op _, Collection params]) =
         simplify (Collection nodes)
       where
         nodes = map (applyOperator op) spreadParams
         spreadParams = map (\x -> Collection [x]) params
     perform MapOp (Collection [Operation op dummy, pointnode]) = perform MapOp (Collection [Operation op dummy, simplify pointnode])
+    perform MapOp pointnode = perform MapOp (simplify pointnode)
 
 data PointNode where
     Operation :: (Operator a) => a -> PointNode -> PointNode
@@ -82,16 +87,19 @@ simplifyPointNode Dummy = Dummy
 instance Node PointNode where
     simplify = simplifyPointNode
     hash (Operation op (Collection params)) = concat (hashOperator op : map hash params)
+    hash (Operation op pointnode) = hashOperator op ++ hash pointnode
     hash (Collection pointnodes) = concatMap hash pointnodes
     hash (Point a) = show a
+    hash Dummy = "Dummy"
     hashEq a b = hash a == hash b
     structEq (Point a) (Point b) = a == b
     structEq (Collection (a : as)) (Collection (b : bs)) = structEq a b && structEq (Collection as) (Collection bs)
     structEq (Operation op1 (Collection params1)) (Operation op2 (Collection params2)) = (hashOperator op1 == hashOperator op2) && all (uncurry structEq) (zip params1 params2)
-    structEq a b = False
+    structEq _ _ = False
 
 instance Show PointNode where
     show (Point a) = "(" ++ show a ++ ")"
     show (Collection nodes) = "[" ++ concatMap show nodes ++ "]"
     show (Operation op (Collection params)) = "{\n" ++ "Op:" ++ hashOperator op ++ "; \n" ++ show (Collection params) ++ "\n}"
+    show (Operation op pointnodes) = "{\n" ++ "Op:" ++ hashOperator op ++ "; \n" ++ hash pointnodes ++ "\n}"
     show Dummy = "Dummy"
