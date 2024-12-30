@@ -28,7 +28,7 @@ instance Operator BinaryOperator where
     perform Add (Collection [Point a, Point b]) = Point (a + b)
     perform Add (Collection [a, b]) = perform Add (Collection [simplify a, simplify b])
     perform Add (Collection _) = error opWrongNumParams
-    perform Add pointnode = trace ("Add pointnode" ++ show pointnode) (perform Add (simplify pointnode))
+    perform Add pointnode = perform Add (simplify pointnode)
     perform Subtract (Collection [Point a, Point b]) = Point (a - b)
     perform Subtract (Collection [a, b]) = perform Subtract (Collection [simplify a, simplify b])
     perform Subtract (Collection _) = error opWrongNumParams
@@ -50,7 +50,7 @@ instance Operator CollectOperator where
     perform Collect cs = cs
     perform Zip (Collection [Point _, _]) = error "Zip expects [Collection as, Collection bs] got [Point _, _]"
     perform Zip (Collection [_, Point _]) = error "Zip expects [Collection as, Collection bs] got [_, Point _]"
-    perform Zip (Collection [Collection as, Collection bs]) = simplify (Collection (map (\(x, y) -> Collection [x, y]) (zip as bs)))
+    perform Zip (Collection [Collection as, Collection bs]) = simplify (Collection (zipWith (\x y -> Collection [x, y]) as bs))
     perform Zip (Collection [pointnodeA, pointnodeB]) = perform Zip (Collection [simplify pointnodeA, simplify pointnodeB])
     perform Zip pointnode = perform Zip (simplify pointnode)
     hashOperator = show
