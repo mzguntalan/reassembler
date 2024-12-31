@@ -3,8 +3,6 @@
 
 module PointNode where
 
-import Debug.Trace (trace)
-
 class Node a where
     simplify :: a -> a
     hash :: a -> String
@@ -101,12 +99,20 @@ instance Node PointNode where
     hash (Operation op (Collection params)) = concat (hashOperator op : map hash params)
     hash (Operation op pointnode) = hashOperator op ++ hash pointnode
     hash (Collection pointnodes) = concatMap hash pointnodes
-    hash (Point a) = show a
+    hash (Point _) = "Point"
     hash Dummy = "Dummy"
     hashEq a b = hash a == hash b
-    structEq (Point a) (Point b) = a == b
-    structEq (Collection (a : as)) (Collection (b : bs)) = structEq a b && structEq (Collection as) (Collection bs)
-    structEq (Operation op1 (Collection params1)) (Operation op2 (Collection params2)) = (hashOperator op1 == hashOperator op2) && all (uncurry structEq) (zip params1 params2)
+    structEq (Point _) (Point _) = True
+    structEq (Collection []) (Collection []) = True
+    structEq (Collection [a]) (Collection [b]) = structEq a b
+    structEq (Collection (a : as)) (Collection (b : bs)) =
+        length (a : as) == length (b : bs)
+            && structEq a b
+            && structEq (Collection as) (Collection bs)
+    structEq (Operation op1 (Collection params1)) (Operation op2 (Collection params2)) =
+        (hashOperator op1 == hashOperator op2)
+            && structEq (Collection params1) (Collection params2)
+    structEq Dummy Dummy = True
     structEq _ _ = False
 
 instance Show PointNode where
