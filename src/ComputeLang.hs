@@ -31,24 +31,32 @@ stringToExpression "" = Expression "" ""
 valueBodyToNode :: ValueBody -> String
 valueBodyToNode (stripPrefix "Point " -> Just body) = "Point " ++ body
 valueBodyToNode (stripPrefix "Negate " -> Just body) = "Operation Negate (Collection [" ++ body ++ "]"
-valueBodyToNode (stripPrefix "Add " -> Just body) = "Operation Add (Collection [" ++ paramname1 ++ ", " ++ paramname2 ++ "]"
+valueBodyToNode (stripPrefix "Add " -> Just body) = "Operation Add (Collection [" ++ paramname1 ++ ", " ++ paramname2 ++ "])"
   where
     (paramname1, paramname2) = splitByFirstSpace "" body
-valueBodyToNode (stripPrefix "Subtract " -> Just body) = "Operation Subtract (Collection [" ++ paramname1 ++ ", " ++ paramname2 ++ "]" where (paramname1, paramname2) = splitByFirstSpace "" body
+valueBodyToNode (stripPrefix "Subtract " -> Just body) = "Operation Subtract (Collection [" ++ paramname1 ++ ", " ++ paramname2 ++ "])" where (paramname1, paramname2) = splitByFirstSpace "" body
 valueBodyToNode _ = "error \" cannot read this line\""
 
 expressionToNode :: Expression -> HaskellCode
 expressionToNode (Expression varname valuebody) = HaskellCode (varname ++ " = " ++ valueBodyToNode valuebody)
+
+haskellCodeToString :: HaskellCode -> String
+haskellCodeToString (HaskellCode string) = string
 
 importStatement :: String
 importStatement = "import PointNode (BinaryOperator (Subtract), PointNode (Collection, Operation, Point))"
 
 computeToHaskell :: IO ()
 computeToHaskell = do
-  listOfStrings <- fmap Text.lines (Text.readFile "../playground/sample.compute")
-  listOfExpressions <- map stringToExpression listOfStrings
-  listOfHaskellCode <- map expressionToNode listOfExpressions
-  putStrLn "Done"
+  fmap (map Text.unpack . Text.lines) (Text.readFile "../playground/sample.compute")
+    >>= (return . map stringToExpression)
+    >>= (return . map expressionToNode)
+    >>= (return . map haskellCodeToString)
+    >>= (return . ([importStatement] ++))
+    >>= (return . map Text.pack)
+    >>= (return . Text.unlines)
+    >>= (return . Text.writeFile "../playground/output.hs")
+  putStrLn "Success"
 
 type Priority = Int
 
