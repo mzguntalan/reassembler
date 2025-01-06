@@ -28,13 +28,22 @@ stringToExpression (c : cs) = Expression varname valuebody
     (varname, valuebody) = splitByFirstSpace "" (c : cs)
 stringToExpression "" = Expression "" ""
 
+sandwichInOperationStatement :: String -> String -> String
+sandwichInOperationStatement opname param = "Operation " ++ opname ++ " (Collection [" ++ param ++ "])"
+
+processBody :: String -> String
+processBody = map (\x -> if x == ' ' then ',' else x)
+
 valueBodyToNode :: ValueBody -> String
 valueBodyToNode (stripPrefix "Point " -> Just body) = "Point " ++ body
-valueBodyToNode (stripPrefix "Negate " -> Just body) = "Operation Negate (Collection [" ++ body ++ "]"
-valueBodyToNode (stripPrefix "Add " -> Just body) = "Operation Add (Collection [" ++ paramname1 ++ ", " ++ paramname2 ++ "])"
-  where
-    (paramname1, paramname2) = splitByFirstSpace "" body
-valueBodyToNode (stripPrefix "Subtract " -> Just body) = "Operation Subtract (Collection [" ++ paramname1 ++ ", " ++ paramname2 ++ "])" where (paramname1, paramname2) = splitByFirstSpace "" body
+valueBodyToNode (stripPrefix "Negate " -> Just body) = sandwichInOperationStatement "Negate" body
+valueBodyToNode (stripPrefix "Add " -> Just body) = sandwichInOperationStatement "Add" $ processBody body
+valueBodyToNode (stripPrefix "Subtract " -> Just body) = sandwichInOperationStatement "Subtract" $ processBody body
+valueBodyToNode (stripPrefix "Negate " -> Just body) = sandwichInOperationStatement "Negate" $ processBody body
+valueBodyToNode (stripPrefix "Zip " -> Just body) = sandwichInOperationStatement "Zip" $ processBody body
+valueBodyToNode (stripPrefix "Map1 " -> Just body) = sandwichInOperationStatement "Map1" $ processBody body
+valueBodyToNode (stripPrefix "Map2 " -> Just body) = sandwichInOperationStatement "Map2" $ processBody body
+valueBodyToNode (stripPrefix "Collection " -> Just body) = "Collection [" ++ processBody body ++ "]"
 valueBodyToNode _ = "error \" cannot read this line\""
 
 expressionToNode :: Expression -> HaskellCode
