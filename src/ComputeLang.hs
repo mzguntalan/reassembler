@@ -68,19 +68,12 @@ beginStatement = moduleStatement ++ "\n" ++ importStatement
 
 computeToHaskell :: IO ()
 computeToHaskell = do
-  -- Read the file content
   content <- Text.readFile "../playground/sample.compute"
-
-  -- Process the content through each step
   let processedContent =
         Text.unlines . map Text.pack $
           beginStatement
             : map (haskellCodeToString . expressionToNode . stringToExpression . Text.unpack) (Text.lines content)
-
-  -- Write the processed content to the file
   Text.writeFile "../playground/output.hs" processedContent
-
-  -- Print success message
   putStrLn "Success"
 
 type Priority = Int
