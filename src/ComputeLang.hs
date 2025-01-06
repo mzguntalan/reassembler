@@ -93,7 +93,7 @@ determinePriority :: ExpandedExpression -> LookUp -> Priority
 determinePriority (ExpandedExpression _ _ []) _ = -1
 determinePriority (ExpandedExpression _ funcname parameternames) lookuptable
     | funcname == "Point" = 0
-    | otherwise = (foldr max 0 $ map (\x -> Map.findWithDefault 0 x lookuptable) parameternames) + 1
+    | otherwise = foldr (max . (\x -> Map.findWithDefault 0 x lookuptable)) 0 parameternames + 1
 
 expandedExpressionToAnnotatedExpression :: ExpandedExpression -> LookUp -> (AnnotatedExpression, LookUp)
 expandedExpressionToAnnotatedExpression (ExpandedExpression varname funcname params) lookuptable = (AnnotatedExpression expr priority, newlookuptable)
