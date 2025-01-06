@@ -47,16 +47,18 @@ importStatement :: String
 importStatement = "import PointNode (BinaryOperator (Subtract), PointNode (Collection, Operation, Point))"
 
 computeToHaskell :: IO ()
-computeToHaskell = do
-  fmap (map Text.unpack . Text.lines) (Text.readFile "../playground/sample.compute")
-    >>= (return . map stringToExpression)
-    >>= (return . map expressionToNode)
-    >>= (return . map haskellCodeToString)
-    >>= (return . ([importStatement] ++))
-    >>= (return . map Text.pack)
-    >>= (return . Text.unlines)
-    >>= (return . Text.writeFile "../playground/output.hs")
-  putStrLn "Success"
+computeToHaskell =
+  do
+    let content <- Text.readFile "../playground/sample.compute"
+      processedContent = content
+    >>= (map Text.unpack . Text.lines)
+    >>= map stringToExpression
+    >>= map expressionToNode
+    >>= map haskellCodeToString
+    >>= ([importStatement] ++)
+    >>= map Text.pack
+    >>= Text.unlines
+    Text.writeFile "../playground/output.hs"
 
 type Priority = Int
 
