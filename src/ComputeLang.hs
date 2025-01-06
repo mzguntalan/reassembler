@@ -87,6 +87,7 @@ data AnnotatedExpression = AnnotatedExpression ExpandedExpression Priority deriv
 
 type LookUp = Map.Map String Int
 
+thelookuptable :: LookUp
 thelookuptable = Map.fromList [("Dummy", (-1 :: Int))]
 
 determinePriority :: ExpandedExpression -> LookUp -> Priority
