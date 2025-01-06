@@ -43,8 +43,14 @@ expressionToNode (Expression varname valuebody) = HaskellCode (varname ++ " = " 
 haskellCodeToString :: HaskellCode -> String
 haskellCodeToString (HaskellCode string) = string
 
+moduleStatement :: String
+moduleStatement = "module OutputCompute where"
+
 importStatement :: String
 importStatement = "import PointNode (BinaryOperator (Subtract), PointNode (Collection, Operation, Point))"
+
+beginStatement :: String
+beginStatement = moduleStatement ++ "\n" ++ importStatement
 
 computeToHaskell :: IO ()
 computeToHaskell = do
@@ -54,7 +60,7 @@ computeToHaskell = do
   -- Process the content through each step
   let processedContent =
         Text.unlines . map Text.pack $
-          importStatement
+          beginStatement
             : ( map haskellCodeToString
                   . map expressionToNode
                   . map stringToExpression
