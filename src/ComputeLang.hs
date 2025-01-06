@@ -8,6 +8,7 @@ import Data.List.Split
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
 import Data.Text.IO qualified as Text
+import Debug.Trace (trace)
 
 type VarName = String
 
@@ -19,8 +20,8 @@ data Expression = Expression VarName ValueBody deriving (Show)
 
 splitByFirstSpace :: String -> String -> (String, String)
 splitByFirstSpace acc (a : as)
-  | a == ' ' = (acc, as)
-  | otherwise = splitByFirstSpace (acc ++ [a]) as
+    | a == ' ' = (acc, as)
+    | otherwise = splitByFirstSpace (acc ++ [a]) as
 splitByFirstSpace _ _ = ("", "")
 
 stringToExpression :: String -> Expression
@@ -50,8 +51,8 @@ valueBodyToNode theline = "error \" cannot read this line\": `" ++ theline ++ "`
 
 expressionToHaskellCode :: Expression -> HaskellCode
 expressionToHaskellCode (Expression varname valuebody) = case bodynode of
-  "" -> HaskellCode ""
-  _ -> HaskellCode (varname ++ " = " ++ bodynode)
+    "" -> HaskellCode ""
+    _ -> HaskellCode (varname ++ " = " ++ bodynode)
   where
     bodynode = valueBodyToNode valuebody
 
@@ -91,8 +92,8 @@ thelookuptable = Map.fromList [("Dummy", (-1 :: Int))]
 determinePriority :: ExpandedExpression -> LookUp -> Priority
 determinePriority (ExpandedExpression _ _ []) _ = -1
 determinePriority (ExpandedExpression _ funcname parameternames) lookuptable
-  | funcname == "Point" = 0
-  | otherwise = (foldr min 0 $ map (\x -> Map.findWithDefault 0 x lookuptable) parameternames) + 1
+    | funcname == "Point" = 0
+    | otherwise = (foldr max 0 $ map (\x -> Map.findWithDefault 0 x lookuptable) parameternames) + 1
 
 expandedExpressionToAnnotatedExpression :: ExpandedExpression -> LookUp -> (AnnotatedExpression, LookUp)
 expandedExpressionToAnnotatedExpression (ExpandedExpression varname funcname params) lookuptable = (AnnotatedExpression expr priority, newlookuptable)
@@ -124,22 +125,22 @@ insertEmptyLinesAfterChangeInPriority :: [AnnotatedExpression] -> [AnnotatedExpr
 insertEmptyLinesAfterChangeInPriority [] = []
 insertEmptyLinesAfterChangeInPriority [a] = [a]
 insertEmptyLinesAfterChangeInPriority ((AnnotatedExpression e1 p1) : (AnnotatedExpression e2 p2 : as))
-  | p1 /= p2 = [AnnotatedExpression e1 p1, emptyAnnotatedExpression] ++ insertEmptyLinesAfterChangeInPriority (AnnotatedExpression e2 p2 : as)
-  | otherwise = [AnnotatedExpression e1 p1] ++ insertEmptyLinesAfterChangeInPriority (AnnotatedExpression e2 p2 : as)
+    | p1 /= p2 = [AnnotatedExpression e1 p1, emptyAnnotatedExpression] ++ insertEmptyLinesAfterChangeInPriority (AnnotatedExpression e2 p2 : as)
+    | otherwise = AnnotatedExpression e1 p1 : insertEmptyLinesAfterChangeInPriority (AnnotatedExpression e2 p2 : as)
 
 computeToHaskell :: IO ()
 computeToHaskell = do
-  content <- Text.readFile "../playground/sample.compute"
-  let expandedExpressions = map (expressionToExpandedExpression . stringToExpression . Text.unpack) (Text.lines content)
-      (annotatedLines, _) = foldl f ([], thelookuptable) expandedExpressions
-        where
-          f (expressions, table) expr = (annotatedExpr : expressions, newtable)
-            where
-              (annotatedExpr, newtable) = expandedExpressionToAnnotatedExpression expr table
-      processedLines = insertEmptyLinesAfterChangeInPriority . filterAnnotatedExpressions . sortAnnotatedExpressions $ annotatedLines
-      processedContent =
-        Text.unlines . map Text.pack $
-          beginStatement
-            : map (haskellCodeToString . annotatedExpressionToHaskellCode) processedLines
-  Text.writeFile "../playground/output.hs" processedContent
-  putStrLn "Success"
+    content <- Text.readFile "../playground/sample.compute"
+    let expandedExpressions = map (expressionToExpandedExpression . stringToExpression . Text.unpack) (Text.lines content)
+        (annotatedLines, _) = foldl f ([], thelookuptable) expandedExpressions
+          where
+            f (expressions, table) expr = (annotatedExpr : expressions, newtable)
+              where
+                (annotatedExpr, newtable) = expandedExpressionToAnnotatedExpression expr table
+        processedLines = insertEmptyLinesAfterChangeInPriority . filterAnnotatedExpressions . sortAnnotatedExpressions $ annotatedLines
+        processedContent =
+            Text.unlines . map Text.pack $
+                beginStatement
+                    : map (haskellCodeToString . annotatedExpressionToHaskellCode) processedLines
+    Text.writeFile "../playground/output.hs" processedContent
+    putStrLn "Success"
