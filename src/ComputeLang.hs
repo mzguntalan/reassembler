@@ -61,12 +61,7 @@ computeToHaskell = do
   let processedContent =
         Text.unlines . map Text.pack $
           beginStatement
-            : ( map haskellCodeToString
-                  . map expressionToNode
-                  . map stringToExpression
-                  . map Text.unpack
-                  $ Text.lines content
-              )
+            : map (haskellCodeToString . expressionToNode . stringToExpression . Text.unpack) (Text.lines content)
 
   -- Write the processed content to the file
   Text.writeFile "../playground/output.hs" processedContent
