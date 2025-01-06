@@ -67,16 +67,6 @@ importStatement = "import PointNode"
 beginStatement :: String
 beginStatement = moduleStatement ++ "\n" ++ importStatement
 
-computeToHaskell :: IO ()
-computeToHaskell = do
-  content <- Text.readFile "../playground/sample.compute"
-  let processedContent =
-        Text.unlines . map Text.pack $
-          beginStatement
-            : map (haskellCodeToString . expressionToHaskellCode . stringToExpression . Text.unpack) (Text.lines content)
-  Text.writeFile "../playground/output.hs" processedContent
-  putStrLn "Success"
-
 type Priority = Int
 
 type LineName = String
@@ -105,3 +95,13 @@ determinePriority (ExpandedExpression _ funcname parameternames) lookuptable
 
 expandedExpressionToAnnotatedExpression :: ExpandedExpression -> LookUp -> AnnotatedExpression
 expandedExpressionToAnnotatedExpression expr lookuptable = AnnotatedExpression expr (determinePriority expr lookuptable)
+
+computeToHaskell :: IO ()
+computeToHaskell = do
+  content <- Text.readFile "../playground/sample.compute"
+  let processedContent =
+        Text.unlines . map Text.pack $
+          beginStatement
+            : map (haskellCodeToString . expressionToHaskellCode . stringToExpression . Text.unpack) (Text.lines content)
+  Text.writeFile "../playground/output.hs" processedContent
+  putStrLn "Success"
