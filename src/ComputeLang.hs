@@ -96,6 +96,14 @@ determinePriority (ExpandedExpression _ funcname parameternames) lookuptable
 expandedExpressionToAnnotatedExpression :: ExpandedExpression -> LookUp -> AnnotatedExpression
 expandedExpressionToAnnotatedExpression expr lookuptable = AnnotatedExpression expr (determinePriority expr lookuptable)
 
+annotatedExpressionToHaskellCode :: AnnotatedExpression -> HaskellCode
+annotatedExpressionToHaskellCode (AnnotatedExpression expandedexpr priority) = HaskellCode ""
+
+expandedExpressionToExpression :: ExpandedExpression -> Expression
+expandedExpressionToExpression (ExpandedExpression varname funcanme paramnames) = Expression varname valbody
+  where
+    valbody = intercalate " " (funcanme : paramnames)
+
 computeToHaskell :: IO ()
 computeToHaskell = do
   content <- Text.readFile "../playground/sample.compute"
