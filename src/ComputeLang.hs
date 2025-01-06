@@ -5,6 +5,7 @@ module ComputeLang where
 
 import Data.List
 import Data.List.Split
+import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
 import Data.Text.IO qualified as Text
 
@@ -18,8 +19,8 @@ data Expression = Expression VarName ValueBody deriving (Show)
 
 splitByFirstSpace :: String -> String -> (String, String)
 splitByFirstSpace acc (a : as)
-    | a == ' ' = (acc, as)
-    | otherwise = splitByFirstSpace (acc ++ [a]) as
+  | a == ' ' = (acc, as)
+  | otherwise = splitByFirstSpace (acc ++ [a]) as
 splitByFirstSpace _ _ = ("", "")
 
 stringToExpression :: String -> Expression
@@ -49,8 +50,8 @@ valueBodyToNode theline = "error \" cannot read this line\": `" ++ theline ++ "`
 
 expressionToHaskellCode :: Expression -> HaskellCode
 expressionToHaskellCode (Expression varname valuebody) = case bodynode of
-    "" -> HaskellCode ""
-    _ -> HaskellCode (varname ++ " = " ++ bodynode)
+  "" -> HaskellCode ""
+  _ -> HaskellCode (varname ++ " = " ++ bodynode)
   where
     bodynode = valueBodyToNode valuebody
 
@@ -68,13 +69,13 @@ beginStatement = moduleStatement ++ "\n" ++ importStatement
 
 computeToHaskell :: IO ()
 computeToHaskell = do
-    content <- Text.readFile "../playground/sample.compute"
-    let processedContent =
-            Text.unlines . map Text.pack $
-                beginStatement
-                    : map (haskellCodeToString . expressionToHaskellCode . stringToExpression . Text.unpack) (Text.lines content)
-    Text.writeFile "../playground/output.hs" processedContent
-    putStrLn "Success"
+  content <- Text.readFile "../playground/sample.compute"
+  let processedContent =
+        Text.unlines . map Text.pack $
+          beginStatement
+            : map (haskellCodeToString . expressionToHaskellCode . stringToExpression . Text.unpack) (Text.lines content)
+  Text.writeFile "../playground/output.hs" processedContent
+  putStrLn "Success"
 
 type Priority = Int
 
@@ -90,3 +91,17 @@ expressionToExpandedExpression :: Expression -> ExpandedExpression
 expressionToExpandedExpression (Expression varname valuebody) = ExpandedExpression varname functionname parameternames
   where
     (functionname : parameternames) = splitOn " " valuebody
+
+data AnnotatedExpression = AnnotatedExpression ExpandedExpression Priority deriving (Show)
+
+type LookUp = Map.Map String Int
+
+thelookuptable = Map.fromList [("Dummy", (-1 :: Int))]
+
+determinePriority :: ExpandedExpression -> LookUp -> Priority
+determinePriority (ExpandedExpression _ funcname parameternames) lookuptable
+  | funcname == "Point" = 0
+  | otherwise = (foldr min 0 $ map (\x -> Map.findWithDefault 0 x lookuptable) parameternames) + 1
+
+expandedExpressionToAnnotatedExpression :: ExpandedExpression -> LookUp -> AnnotatedExpression
+expandedExpressionToAnnotatedExpression expr lookuptable = AnnotatedExpression expr (determinePriority expr lookuptable)
