@@ -47,8 +47,8 @@ valueBodyToNode (stripPrefix "Collection " -> Just body) = "Collection [" ++ pro
 valueBodyToNode "" = ""
 valueBodyToNode theline = "error \" cannot read this line\": `" ++ theline ++ "`"
 
-expressionToNode :: Expression -> HaskellCode
-expressionToNode (Expression varname valuebody) = case bodynode of
+expressionToHaskellCode :: Expression -> HaskellCode
+expressionToHaskellCode (Expression varname valuebody) = case bodynode of
   "" -> HaskellCode ""
   _ -> HaskellCode (varname ++ " = " ++ bodynode)
   where
@@ -72,10 +72,8 @@ computeToHaskell = do
   let processedContent =
         Text.unlines . map Text.pack $
           beginStatement
-            : map (haskellCodeToString . expressionToNode . stringToExpression . Text.unpack) (Text.lines content)
+            : map (haskellCodeToString . expressionToHaskellCode . stringToExpression . Text.unpack) (Text.lines content)
   Text.writeFile "../playground/output.hs" processedContent
   putStrLn "Success"
 
 type Priority = Int
-
-data AnnotatedPointNode = AnnotatedPointNode PointNode Priority
