@@ -97,7 +97,7 @@ expandedExpressionToAnnotatedExpression :: ExpandedExpression -> LookUp -> Annot
 expandedExpressionToAnnotatedExpression expr lookuptable = AnnotatedExpression expr (determinePriority expr lookuptable)
 
 annotatedExpressionToHaskellCode :: AnnotatedExpression -> HaskellCode
-annotatedExpressionToHaskellCode (AnnotatedExpression expandedexpr priority) = HaskellCode ""
+annotatedExpressionToHaskellCode (AnnotatedExpression expandedexpr _) = expressionToHaskellCode . expandedExpressionToExpression $ expandedexpr
 
 expandedExpressionToExpression :: ExpandedExpression -> Expression
 expandedExpressionToExpression (ExpandedExpression varname funcanme paramnames) = Expression varname valbody
@@ -110,6 +110,6 @@ computeToHaskell = do
   let processedContent =
         Text.unlines . map Text.pack $
           beginStatement
-            : map (haskellCodeToString . expressionToHaskellCode . stringToExpression . Text.unpack) (Text.lines content)
+            : map (haskellCodeToString . annotatedExpressionToHaskellCode . (`expandedExpressionToAnnotatedExpression` thelookuptable) . expressionToExpandedExpression . stringToExpression . Text.unpack) (Text.lines content)
   Text.writeFile "../playground/output.hs" processedContent
   putStrLn "Success"
