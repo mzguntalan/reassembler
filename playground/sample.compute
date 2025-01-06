@@ -1,0 +1,3 @@
+m Point 5.5
+n Point (-6.5)
+s Subtract m n
