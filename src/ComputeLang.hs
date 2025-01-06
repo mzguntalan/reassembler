@@ -44,10 +44,15 @@ valueBodyToNode (stripPrefix "Zip " -> Just body) = sandwichInOperationStatement
 valueBodyToNode (stripPrefix "Map1 " -> Just body) = sandwichInOperationStatement "Map1" $ processBody body
 valueBodyToNode (stripPrefix "Map2 " -> Just body) = sandwichInOperationStatement "Map2" $ processBody body
 valueBodyToNode (stripPrefix "Collection " -> Just body) = "Collection [" ++ processBody body ++ "]"
-valueBodyToNode _ = "error \" cannot read this line\""
+valueBodyToNode "" = ""
+valueBodyToNode theline = "error \" cannot read this line\": `" ++ theline ++ "`"
 
 expressionToNode :: Expression -> HaskellCode
-expressionToNode (Expression varname valuebody) = HaskellCode (varname ++ " = " ++ valueBodyToNode valuebody)
+expressionToNode (Expression varname valuebody) = case bodynode of
+  "" -> HaskellCode ""
+  _ -> HaskellCode (varname ++ " = " ++ bodynode)
+  where
+    bodynode = valueBodyToNode valuebody
 
 haskellCodeToString :: HaskellCode -> String
 haskellCodeToString (HaskellCode string) = string
@@ -56,7 +61,7 @@ moduleStatement :: String
 moduleStatement = "module OutputCompute where"
 
 importStatement :: String
-importStatement = "import PointNode (BinaryOperator (Subtract), PointNode (Collection, Operation, Point))"
+importStatement = "import PointNode"
 
 beginStatement :: String
 beginStatement = moduleStatement ++ "\n" ++ importStatement
