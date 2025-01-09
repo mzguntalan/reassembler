@@ -80,16 +80,16 @@ type ParameterNames = [String]
 data ExpandedExpression = ExpandedExpression LineName FunctionName ParameterNames deriving (Show)
 
 expressionToExpandedExpression :: Expression -> ExpandedExpression
-expressionToExpandedExpression (Expression varname valuebody) = ExpandedExpression varname functionname parameternames
-  where
-    (functionname : parameternames) = splitOn " " valuebody
+expressionToExpandedExpression (Expression varname valuebody) = case splitOn " " valuebody of
+    (functionname : parameternames) -> ExpandedExpression varname functionname parameternames
+    _ -> error "No Parameters"
 
 data AnnotatedExpression = AnnotatedExpression ExpandedExpression Priority deriving (Show)
 
 type LookUp = Map.Map String Int
 
 thelookuptable :: LookUp
-thelookuptable = Map.fromList [("Dummy", (-1 :: Int))]
+thelookuptable = Map.fromList [("Dummy", -1 :: Int)]
 
 determinePriority :: ExpandedExpression -> LookUp -> Priority
 determinePriority (ExpandedExpression _ _ []) _ = -1
@@ -224,7 +224,7 @@ flattenGroupedHaskellCode gs =
                 augment cs = HaskellCode "-- new struct" : cs
 
                 augment2 :: [[HaskellCode]] -> [[HaskellCode]]
-                augment2 cs = (map augment cs) ++ [[HaskellCode "-- prio"]]
+                augment2 cs = map augment cs ++ [[HaskellCode "-- prio"]]
 
                 augment3 :: [[[HaskellCode]]] -> [[[HaskellCode]]]
                 augment3 = map augment2
