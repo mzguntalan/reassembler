@@ -218,13 +218,20 @@ interpretedExpressionToHaskellCode (InterpretedExpression annotatedExpression _)
 
 flattenGroupedHaskellCode :: [[[HaskellCode]]] -> [HaskellCode]
 flattenGroupedHaskellCode gs =
-    let f1 :: [[[HaskellCode]]] -> [[HaskellCode]]
+    let f1 :: [[[HaskellCode]]] -> [HaskellCode]
+        f1 css =
+            let augment :: [HaskellCode] -> [HaskellCode]
+                augment cs = HaskellCode "-- new struct" : cs
 
-        f1 = intercalate [[HaskellCode "-- >>>>> new priority"]]
+                augment2 :: [[HaskellCode]] -> [[HaskellCode]]
+                augment2 cs = (map augment cs) ++ [[HaskellCode "-- prio"]]
 
-        f2 :: [[HaskellCode]] -> [HaskellCode]
-        f2 = intercalate [HaskellCode "-- new struct"]
-     in f2 . f1 $ gs
+                augment3 :: [[[HaskellCode]]] -> [[[HaskellCode]]]
+                augment3 = map augment2
+
+                augmented = augment3 css
+             in concat $ concat augmented
+     in f1 gs
 
 computeToHaskell :: IO ()
 computeToHaskell = do
