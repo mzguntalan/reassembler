@@ -219,10 +219,11 @@ interpretedExpressionToHaskellCode (InterpretedExpression annotatedExpression _)
 flattenGroupedHaskellCode :: [[[HaskellCode]]] -> [HaskellCode]
 flattenGroupedHaskellCode gs =
     let f1 :: [[[HaskellCode]]] -> [[HaskellCode]]
-        f1 = intercalate [[HaskellCode "-- q"]]
+
+        f1 = intercalate [[HaskellCode "-- >>>>> new priority"]]
 
         f2 :: [[HaskellCode]] -> [HaskellCode]
-        f2 = intercalate [HaskellCode "-- p"]
+        f2 = intercalate [HaskellCode "-- new struct"]
      in f2 . f1 $ gs
 
 computeToHaskell :: IO ()
@@ -244,7 +245,6 @@ computeToHaskell = do
               where
                 interpretedExpression = annotatedExpressionToInterpretedExpression annotatedExpression varlookup
 
-        -- the problem is with the grouping
         groupedInterpretedLines = regroupInterpretedExpressions interpretedLines
         groupedHaskellCode =
             let f1 :: [InterpretedExpression] -> [HaskellCode]
