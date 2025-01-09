@@ -9,6 +9,7 @@ import Data.Map.Strict qualified as Map
 import Data.Text qualified as Text
 import Data.Text.IO qualified as Text
 import Debug.Trace (trace)
+import GHC.Stats (GCDetails (gcdetails_par_max_copied_bytes))
 import PointNode
 import PointNode (BinaryOperator (Subtract))
 
@@ -131,7 +132,7 @@ insertEmptyLinesAfterChangeInPriority ((AnnotatedExpression e1 p1) : (AnnotatedE
   | p1 /= p2 = [AnnotatedExpression e1 p1, emptyAnnotatedExpression] ++ insertEmptyLinesAfterChangeInPriority (AnnotatedExpression e2 p2 : as)
   | otherwise = AnnotatedExpression e1 p1 : insertEmptyLinesAfterChangeInPriority (AnnotatedExpression e2 p2 : as)
 
-data InterpretedExpression = InterpretedExpression AnnotatedExpression PointNode
+data InterpretedExpression = InterpretedExpression AnnotatedExpression PointNode deriving (Show)
 
 type LookUpOfPointNodes = Map.Map VarName PointNode
 
@@ -141,7 +142,7 @@ lookUpOfPointNodes = Map.fromList [("Dummy", Dummy)]
 varnameToPointNode :: LookUpOfPointNodes -> String -> PointNode
 varnameToPointNode varlookup varname = case Map.lookup varname varlookup of
   Just a -> a
-  Nothing -> error (varname ++ "was not found")
+  Nothing -> error (varname ++ " was not found")
 
 funcNameToPointNode :: FunctionName -> [PointNode] -> PointNode
 funcNameToPointNode "Add" params = Operation Add (Collection params)
@@ -150,21 +151,94 @@ funcNameToPointNode "Negate" params = Operation Negate (Collection params)
 funcNameToPointNode "Map1" params = Operation Map1 (Collection params)
 funcNameToPointNode "Map2" params = Operation Map2 (Collection params)
 funcNameToPointNode "Zip" params = Operation Zip (Collection params)
+funcNameToPointNode "Collection" params = Collection params
 funcNameToPointNode "Point" [point] = point
 funcNameToPointNode "Point" _ = error "compile error"
-funcNameToPointNode _ _ = error "idk yet"
+funcNameToPointNode funcname params = trace (show funcname ++ " <> " ++ show params) error "idk yet"
 
 varnamesToPointNodes :: LookUpOfPointNodes -> [VarName] -> [PointNode]
 varnamesToPointNodes varlookup = map $ varnameToPointNode varlookup
 
 annotatedExpressionToInterpretedExpression :: AnnotatedExpression -> LookUpOfPointNodes -> InterpretedExpression
+annotatedExpressionToInterpretedExpression (AnnotatedExpression (ExpandedExpression varname "Point" [a]) priority) _ =
+  InterpretedExpression annotatedExpression pointNode
+  where
+    annotatedExpression = AnnotatedExpression (ExpandedExpression varname "Point" [a]) priority
+    pointNode = Point (read a :: Float)
+annotatedExpressionToInterpretedExpression (AnnotatedExpression (ExpandedExpression _ "Point" _) _) _ = error "Point should only have one parameter"
 annotatedExpressionToInterpretedExpression (AnnotatedExpression (ExpandedExpression varname funcname paramnames) priority) varlookup = InterpretedExpression annotatedExpression pointNode
   where
     annotatedExpression = AnnotatedExpression (ExpandedExpression varname funcname paramnames) priority
     pointnodeParams = varnamesToPointNodes varlookup paramnames
     pointNode = funcNameToPointNode funcname pointnodeParams
 
--- groupStructEqExpressionsTogether :: [PointNode] -> [[PointNode]]
+addIntepretedExpressionToLookUp :: InterpretedExpression -> LookUpOfPointNodes -> LookUpOfPointNodes
+addIntepretedExpressionToLookUp
+  ( InterpretedExpression
+      ( AnnotatedExpression
+          ( ExpandedExpression
+              varname
+              _
+              _
+            )
+          _
+        )
+      pointNodeRepresentation
+    ) =
+    trace ("varname:" ++ varname) Map.insert varname pointNodeRepresentation
+
+groupStructEqExpressionsTogether :: [PointNode] -> [[PointNode]]
+groupStructEqExpressionsTogether pointnodes = groupExpressions [] [] pointnodes []
+  where
+    groupExpressions :: [PointNode] -> [[PointNode]] -> [PointNode] -> [PointNode] -> [[PointNode]]
+    groupExpressions _ groups [] [] = groups
+    groupExpressions (representative : others) groups (candidate : candidates) rejectednodes =
+      if structEq representative candidate
+        then groupExpressions (candidate : (representative : others)) groups candidates rejectednodes
+        else groupExpressions (representative : others) groups candidates (candidate : rejectednodes)
+    groupExpressions curgroup groups [] rejectednodes = groupExpressions [] (curgroup : groups) rejectednodes []
+    groupExpressions [] groups (candidate : candidates) rejects = groupExpressions [candidate] groups candidates rejects
+
+groupStrutEqInterpretedExpressionTogether :: [InterpretedExpression] -> [[InterpretedExpression]]
+groupStrutEqInterpretedExpressionTogether expressions = groupExpressions [] [] expressions []
+  where
+    groupExpressions :: [InterpretedExpression] -> [[InterpretedExpression]] -> [InterpretedExpression] -> [InterpretedExpression] -> [[InterpretedExpression]]
+    groupExpressions _ groups [] [] = groups
+    groupExpressions (representative : others) groups (candidate : candidates) rejectednodes =
+      let (InterpretedExpression _ pointNodeRepresentate) = representative
+          (InterpretedExpression _ pointNodeCandidate) = candidate
+       in if structEq pointNodeRepresentate pointNodeCandidate
+            then groupExpressions (candidate : (representative : others)) groups candidates rejectednodes
+            else groupExpressions (representative : others) groups candidates (candidate : rejectednodes)
+    groupExpressions curgroup groups [] rejectednodes = groupExpressions [] (curgroup : groups) rejectednodes []
+    groupExpressions [] groups (candidate : candidates) rejects = groupExpressions [candidate] groups candidates rejects
+
+regroupInterpretedExpressions :: [InterpretedExpression] -> [[[InterpretedExpression]]]
+regroupInterpretedExpressions = regroup [] []
+  where
+    regroup :: [InterpretedExpression] -> [[[InterpretedExpression]]] -> [InterpretedExpression] -> [[[InterpretedExpression]]]
+    regroup [] regrouped [] = regrouped
+    regroup [] regrouped (candidate : candidates) = regroup [candidate] regrouped candidates
+    regroup currentGroup regrouped [] = groupStrutEqInterpretedExpressionTogether currentGroup : regrouped
+    regroup (representative : others) regrouped (candidate : candidates) =
+      let InterpretedExpression (AnnotatedExpression _ prioRep) _ = representative
+          InterpretedExpression (AnnotatedExpression _ prioCan) _ = candidate
+       in if prioRep == prioCan
+            then regroup (candidate : (representative : others)) regrouped candidates
+            else regroup [] (groupStrutEqInterpretedExpressionTogether (representative : others) : regrouped) (candidate : candidates)
+
+interpretedExpressionToHaskellCode :: InterpretedExpression -> HaskellCode
+interpretedExpressionToHaskellCode (InterpretedExpression annotatedExpression _) = annotatedExpressionToHaskellCode annotatedExpression
+
+flattenGroupedHaskellCode :: [[[HaskellCode]]] -> [HaskellCode]
+flattenGroupedHaskellCode gs =
+  let f1 :: [[[HaskellCode]]] -> [[HaskellCode]]
+      f1 = intercalate [[HaskellCode "-- q"]]
+
+      f2 :: [[HaskellCode]] -> [HaskellCode]
+      f2 = intercalate [HaskellCode "-- p"]
+   in f2 . f1 $ gs
+
 computeToHaskell :: IO ()
 computeToHaskell = do
   content <- Text.readFile "../playground/sample.compute"
@@ -174,10 +248,33 @@ computeToHaskell = do
           f (expressions, table) expr = (annotatedExpr : expressions, newtable)
             where
               (annotatedExpr, newtable) = expandedExpressionToAnnotatedExpression expr table
-      processedLines = insertEmptyLinesAfterChangeInPriority . filterAnnotatedExpressions . sortAnnotatedExpressions $ annotatedLines
+
+      sortedAnnotatedLines = filterAnnotatedExpressions . sortAnnotatedExpressions $ annotatedLines
+
+      (interpretedLines, _) = trace ("sorted:\n" ++ show (map annotatedExpressionToHaskellCode sortedAnnotatedLines)) $ foldl f ([], lookUpOfPointNodes) sortedAnnotatedLines
+        where
+          f :: ([InterpretedExpression], LookUpOfPointNodes) -> AnnotatedExpression -> ([InterpretedExpression], LookUpOfPointNodes)
+          f (exprs, varlookup) annotatedExpression = (exprs ++ [interpretedExpression], addIntepretedExpressionToLookUp interpretedExpression varlookup)
+            where
+              interpretedExpression = annotatedExpressionToInterpretedExpression annotatedExpression varlookup
+
+      -- the problem is with the grouping
+      groupedInterpretedLines = trace ("\n\ninterpreted lines:\n" ++ show interpretedLines) regroupInterpretedExpressions interpretedLines
+      groupedHaskellCode =
+        let f1 :: [InterpretedExpression] -> [HaskellCode]
+            f1 = map interpretedExpressionToHaskellCode
+            f2 :: [[InterpretedExpression]] -> [[HaskellCode]]
+            f2 = map f1
+            f3 :: [[[InterpretedExpression]]] -> [[[HaskellCode]]]
+            f3 = map f2
+         in f3 groupedInterpretedLines
+
+      processedLines = flattenGroupedHaskellCode groupedHaskellCode
+
       processedContent =
         Text.unlines . map Text.pack $
           beginStatement
-            : map (haskellCodeToString . annotatedExpressionToHaskellCode) processedLines
+            : map haskellCodeToString processedLines
+
   Text.writeFile "../playground/output.hs" processedContent
   putStrLn "Success"
