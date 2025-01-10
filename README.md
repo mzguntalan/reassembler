@@ -31,7 +31,7 @@ The demo can be found in the playground. I only have the following functions: Ad
 - `sample.compute` -> a sample `.compute` program
 - `output.hs` -> the transpiled HS code which has delimeters for new priority or new struct(meaning a new group of structurally the same operations)
 
-For quicker reference, I have also added line numbers:
+For quicker reference, here is a small demo, I have also added line numbers:
 
 ```
 [01] add Add Dummy Dummy
