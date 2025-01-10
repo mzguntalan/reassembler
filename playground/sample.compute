@@ -15,5 +15,14 @@ ns Collection n1 n2 n3
 negateNs Map1 negateT ns
 negateMs Map1 negateT ms
 
-out Map2 add negateMs negateNs
+sum1 Map2 add negateMs negateNs
+sum2 Map2 add negateMs negateMs
+sum3 Map2 add negateNs negateNs
+sum4 Map2 add ms ns
+sum5 Map2 add ns ns
+
+sum6 Map2 add sum1 sum2
+sum7 Map2 add sum6 sum3
+sum8 Map2 add sum7 sum4
+out Map2 add sum8 sum5
 

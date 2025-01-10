@@ -19,9 +19,26 @@ ns = Collection [n1,n2,n3]
 add = Operation Add (Collection [Dummy,Dummy])
 -- prio
 -- new struct
+sum4 = Operation Map2 (Collection [add,ms,ns])
+sum5 = Operation Map2 (Collection [add,ns,ns])
+-- new struct
 negateMs = Operation Map1 (Collection [negateT,ms])
 negateNs = Operation Map1 (Collection [negateT,ns])
 -- prio
 -- new struct
-out = Operation Map2 (Collection [add,negateMs,negateNs])
+sum3 = Operation Map2 (Collection [add,negateNs,negateNs])
+sum2 = Operation Map2 (Collection [add,negateMs,negateMs])
+sum1 = Operation Map2 (Collection [add,negateMs,negateNs])
+-- prio
+-- new struct
+sum6 = Operation Map2 (Collection [add,sum1,sum2])
+-- prio
+-- new struct
+sum7 = Operation Map2 (Collection [add,sum6,sum3])
+-- prio
+-- new struct
+sum8 = Operation Map2 (Collection [add,sum7,sum4])
+-- prio
+-- new struct
+out = Operation Map2 (Collection [add,sum8,sum5])
 -- prio
